@@ -100,7 +100,7 @@ class Signal(object):
         a_axis[1:] = a_axis[1:]*2
 
         return x_axis, a_axis, p_axis
-        
+
     def clear(self, cond=lambda f:True):
         '''
         Set amplitudes of all frequencies satisfying the condition, cond, to
@@ -123,6 +123,18 @@ class Signal(object):
             self.set_freq(f, 1.0/f, -90)
             f += 2*freq
 
+    def sample_time_function(self, func):
+        '''
+        Sample values from a time-domain, real-valued function, func(t), where
+        t will be specified in second.  Samples are collected at the
+        sampling rate associated with the Signal object.
+        '''
+        n = len(self.freqs)
+        signal = np.arange(n, dtype=float)
+        for i in range(n):
+            signal[i] = func(float(i)/self.sampling_rate)
+        self.freqs = fft(signal)
+        
     def plot(self, dB=False, phase=False, stem=False, frange=(0,10000)):
         '''
         Generate three subplots showing frequency-domain (both amplitude and
@@ -210,29 +222,27 @@ def test2():
     s.square_wave(2,flimit=50)
     s.plot(stem=True,phase=True,frange=(0,50))
 
-# ###########################################
-# def test3():
-#     '''
-#     generate composite signal containing 3 Hz and 2 Hz sine waves
-#     '''
+def test3():
+    '''
+    generate composite signal containing 3 Hz and 2 Hz sine waves
+    '''
 
-#     def test_func(t):
-#         return 0.2*np.sin(2*np.pi*t*3) + 0.3*np.sin(2*np.pi*t*2)
+    def test_func(t):
+        return 0.2*np.sin(2*np.pi*t*3) + 0.3*np.sin(2*np.pi*t*2)
 
-#     s = Signal(func=test_func)
-#     s.plot(frange=(0,10), stem=True)
+    s = Signal(func=test_func)
+    s.plot(frange=(0,10), stem=True)
 
-# ###########################################
-# def test4():
-#     '''
-#     generate a DTMF (Dual-Tone Multi-Frequency) signal representing keypad '2'
-#     then write the wave output to a file
-#     '''
-#     s = Signal()
-#     s.set_freq(770, .3, 0)
-#     s.set_freq(1336, .3, 0)
-#     s.plot(frange=(0,1500), stem=False)
-#     s.write_wav('2.wav')
+def test4():
+    '''
+    generate a DTMF (Dual-Tone Multi-Frequency) signal representing keypad '2'
+    then write the wave output to a file
+    '''
+    s = Signal()
+    s.set_freq(770, .3, 0)
+    s.set_freq(1336, .3, 0)
+    s.plot(frange=(0,1500), stem=False)
+    s.write_wav('2.wav')
 
 # ###########################################
 # def test5():
@@ -261,4 +271,4 @@ def test2():
 
 ###########################################
 if __name__ == '__main__':
-    test2()
+    test3()
