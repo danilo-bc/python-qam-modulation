@@ -186,7 +186,12 @@ class Signal(object):
 
             self.freqs[-(nyquist-offset)+1:] = np.copy(self.freqs[-nyquist+1:-offset])
             self.freqs[-nyquist+1:-nyquist+offset] = 0
-            
+    
+    def __add__(self, s):
+        newSignal = self.copy()
+        newSignal.mix(s)
+        return newSignal
+    
     def write_wav(self, wav_file):
         '''
         Write signal data into the specified wave file using int16 data type
