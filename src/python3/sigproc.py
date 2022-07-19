@@ -113,6 +113,28 @@ class Signal(object):
             if cond(f):
                 self.freqs[i] = 0j
 
+    def copy(self):
+        '''
+        Clone the signal object into another identical signal object.
+        '''
+        s = Signal()
+        s.duration = self.duration
+        s.sampling_rate = self.sampling_rate
+        s.freqs = np.array(self.freqs)
+        return s
+    
+    def mix(self, signal):
+        '''
+        Mix the signal with another given signal.  Sampling rate and duration
+        of both signals must match.
+        '''
+        if self.sampling_rate != signal.sampling_rate \
+           or len(self.freqs) != len(signal.freqs):
+            raise Exception(
+                'Signal to mix must have identical sampling rate and duration')
+
+        self.freqs += signal.freqs
+
     def square_wave(self, freq, flimit=8000):
         '''
         Generate a band-limited square wave on to the signal object
@@ -134,7 +156,37 @@ class Signal(object):
         for i in range(n):
             signal[i] = func(float(i)/self.sampling_rate)
         self.freqs = fft(signal)
+    
+    def shift_freq(self, offset):
+        '''
+        Shift signal in the frequency domain by the amount specified by offset
+        (in Hz).  If offset is positive, the signal is shifted to the right
+        along the frequency axis.  If offset is negative, the signal is
+        shifted to the left along the frequency axis.
+        '''
+        n = len(self.freqs)
+        nyquist = int(n//2)
 
+        # compute the array-based index from the specified offset in Hz
+        offset = int(np.round(float(offset)*n/self.sampling_rate))
+        if abs(offset) > nyquist:
+            raise Exception(
+            'Shifting offset cannot be greater than the Nyquist frequency')
+
+        if offset > 0:
+            self.freqs[offset:nyquist] = np.copy(self.freqs[:nyquist-offset])
+            self.freqs[:offset] = 0
+
+            self.freqs[-nyquist+1:-offset] = np.copy(self.freqs[-(nyquist-offset)+1:])
+            self.freqs[-offset+1:] = 0
+        else:
+            offset = -offset
+            self.freqs[:nyquist-offset] = np.copy(self.freqs[offset:nyquist])
+            self.freqs[nyquist-offset:nyquist] = 0
+
+            self.freqs[-(nyquist-offset)+1:] = np.copy(self.freqs[-nyquist+1:-offset])
+            self.freqs[-nyquist+1:-nyquist+offset] = 0
+            
     def write_wav(self, wav_file):
         '''
         Write signal data into the specified wave file using int16 data type
@@ -280,7 +332,6 @@ def test4():
     s.plot(frange=(0,1500), stem=False)
     s.write_wav('2.wav')
 
-# ###########################################
 def test5():
     '''
     Read a wave file containing keypad '6' DTMF wave form and display its
@@ -290,21 +341,20 @@ def test5():
     s.read_wav('2.wav')
     s.plot(frange=(0,2000), stem=False)
 
-# ###########################################
-# def test6():
-#     '''
-#     Test frequency shifting and mixing of signals
-#     '''
-#     s1 = Signal()
-#     s1.set_freq(50,.3)
-#     s2 = s1.copy()
-#     s2.shift_freq(-30)
-#     s1.mix(s2)
-#     s2.shift_freq(70)
-#     s1.mix(s2)
-#     s1.plot(stem=True, phase=False, frange=(0,100))
+def test6():
+    '''
+    Test frequency shifting and mixing of signals
+    '''
+    s1 = Signal()
+    s1.set_freq(50,.3)
+    s2 = s1.copy()
+    s2.shift_freq(-30)
+    s1.mix(s2)
+    s2.shift_freq(70)
+    s1.mix(s2)
+    s1.plot(stem=True, phase=False, frange=(0,100))
 
 
 ###########################################
 if __name__ == '__main__':
-    test5()
+    test6()
