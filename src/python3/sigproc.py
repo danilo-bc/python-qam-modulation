@@ -134,7 +134,16 @@ class Signal(object):
         for i in range(n):
             signal[i] = func(float(i)/self.sampling_rate)
         self.freqs = fft(signal)
-        
+
+    def write_wav(self, wav_file):
+        '''
+        Write signal data into the specified wave file using int16 data type
+        '''
+        wavfile.write(
+                wav_file, 
+                self.sampling_rate, 
+                (ifft(self.freqs).real*32768).astype(np.dtype('int16')))
+                
     def plot(self, dB=False, phase=False, stem=False, frange=(0,10000)):
         '''
         Generate three subplots showing frequency-domain (both amplitude and
@@ -271,4 +280,4 @@ def test4():
 
 ###########################################
 if __name__ == '__main__':
-    test3()
+    test4()
