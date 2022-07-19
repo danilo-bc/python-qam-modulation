@@ -77,6 +77,30 @@ class Signal(object):
         y_axis = ifft(self.freqs).real
         return x_axis, y_axis
 
+    def get_freq_domain(self):
+        '''
+        Return a tuple (X,A,P) where X is an array storing the frequency axis
+        up to the Nyquist frequency (excluding negative frequency), and A and
+        P are arrays storing the amplitude and phase shift (in degree) of each
+        frequency
+        '''
+        n = len(self.freqs)
+        num_freqs = int(np.ceil((n+1)/2.0))
+        x_axis = np.linspace(0, self.sampling_rate/2.0, num_freqs)
+
+        # extract only positive frequencies and scale them so that the
+        # magnitude does not depend on the length of the array
+        a_axis = abs(self.freqs[:num_freqs])/float(n)
+        p_axis = np.arctan2(
+                    self.freqs[:num_freqs].imag,
+                    self.freqs[:num_freqs].real) * 180.0/np.pi
+
+        # double amplitudes of the AC components (since we have thrown away
+        # the negative frequencies)
+        a_axis[1:] = a_axis[1:]*2
+
+        return x_axis, a_axis, p_axis
+        
     def clear(self, cond=lambda f:True):
         '''
         Set amplitudes of all frequencies satisfying the condition, cond, to
@@ -99,6 +123,72 @@ class Signal(object):
             self.set_freq(f, 1.0/f, -90)
             f += 2*freq
 
+    def plot(self, dB=False, phase=False, stem=False, frange=(0,10000)):
+        '''
+        Generate three subplots showing frequency-domain (both amplitude and
+        phase) and time-domain representations of the given signal.
+
+        If stem is True, stem plots will be used for both amplitude and phase
+
+        If dB is True, the amplitude in the frequency domain plot will be shown
+        with the log scale.
+
+        If phase is True, the phase-shift plot will also be created.
+        '''
+        plt.subplots_adjust(hspace=.4)
+
+        if phase:
+            num_plots = 3
+        else:
+            num_plots = 2
+
+        # plot time-domain signal
+        plt.subplot(num_plots, 1, 1)
+        plt.cla()
+        x,y = self.get_time_domain()
+        plt.grid(True)
+        plt.xlabel(u'Time (s)')
+        plt.ylabel('Value')
+        plt.plot(x,y,'g')
+
+        # plot frequency vs. amplitude
+        x,a,p = self.get_freq_domain()
+        start_index = int(float(frange[0])/self.sampling_rate*len(self.freqs))
+        stop_index  = int(float(frange[1])/self.sampling_rate*len(self.freqs))
+        x = x[start_index:stop_index]
+        a = a[start_index:stop_index]
+        p = p[start_index:stop_index]
+        plt.subplot(num_plots, 1, 2)
+        plt.cla()
+        plt.grid(True)
+        plt.xlabel(u'Frequency (Hz)')
+
+        if dB:
+            a = 10.*np.log10(a + 1e-10) + 100
+            plt.ylabel(u'Amplitude (dB)')
+        else:
+            plt.ylabel(u'Amplitude')
+
+        if stem:
+            plt.stem(x,a,'b')
+        else:
+            plt.plot(x,a,'b')
+
+        # plot frequency vs. phase-shift
+        if phase:
+            plt.subplot(num_plots, 1, 3)
+            plt.cla()
+            plt.grid(True)
+            plt.xlabel(u'Frequency (Hz)')
+            plt.ylabel(u'Phase (degree)')
+            plt.ylim(-180,180)
+            if stem:
+                plt.stem(x[start_index:stop_index],p[start_index:stop_index],'r')
+            else:
+                plt.plot(x[start_index:stop_index],p[start_index:stop_index],'r')
+
+        plt.show()
+
 def test1():
     '''
     generate a 5Hz square wave with 50Hz cutoff frequency
@@ -111,15 +201,14 @@ def test1():
     plt.grid(True)
     plt.show()
 
-# ###########################################
-# def test2():
-#     '''
-#     generate a 2Hz square wave with 50Hz cutoff frequency
-#     then display both time-domain and frequency-domain signal
-#     '''
-#     s = Signal()
-#     s.square_wave(2,flimit=50)
-#     s.plot(stem=True,phase=True,frange=(0,50))
+def test2():
+    '''
+    generate a 2Hz square wave with 50Hz cutoff frequency
+    then display both time-domain and frequency-domain signal
+    '''
+    s = Signal()
+    s.square_wave(2,flimit=50)
+    s.plot(stem=True,phase=True,frange=(0,50))
 
 # ###########################################
 # def test3():
@@ -172,4 +261,4 @@ def test1():
 
 ###########################################
 if __name__ == '__main__':
-    test1()
+    test2()
