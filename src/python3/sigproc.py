@@ -143,7 +143,34 @@ class Signal(object):
                 wav_file, 
                 self.sampling_rate, 
                 (ifft(self.freqs).real*32768).astype(np.dtype('int16')))
-                
+
+    def read_wav(self, wav_file, channel='left'):
+        '''
+        Read data from the specified wave file into the signal object.  For a
+        stereo stream, only one channel ('left' or 'right') can be extracted.
+        '''
+        rate,data = wavfile.read(wav_file)
+        n = data.shape[0]
+        self.sampling_rate = rate
+        self.duration = float(n)/rate
+
+        if data.dtype == np.dtype('int16'):
+            normalizer = 32768.0
+        elif data.dtype == np.dtype('int8'):
+            normalizer = 256.0
+        else:
+            raise(Exception('Unsupport data type'))
+
+        if len(data.shape) == 2: # stereo stream
+            if channel == 'left':
+                data = data[:,0]
+            elif channel == 'right':
+                data = data[:,1]
+            else:
+                raise(Exception('Invalid channel choice "%s"' % channel))
+
+        self.freqs = fft(data/normalizer)
+
     def plot(self, dB=False, phase=False, stem=False, frange=(0,10000)):
         '''
         Generate three subplots showing frequency-domain (both amplitude and
@@ -254,14 +281,14 @@ def test4():
     s.write_wav('2.wav')
 
 # ###########################################
-# def test5():
-#     '''
-#     Read a wave file containing keypad '6' DTMF wave form and display its
-#     signal and frequency spectrum
-#     '''
-#     s = Signal()
-#     s.read_wav('Dtmf6.wav')
-#     s.plot(frange=(0,2000), stem=False)
+def test5():
+    '''
+    Read a wave file containing keypad '6' DTMF wave form and display its
+    signal and frequency spectrum
+    '''
+    s = Signal()
+    s.read_wav('2.wav')
+    s.plot(frange=(0,2000), stem=False)
 
 # ###########################################
 # def test6():
@@ -280,4 +307,4 @@ def test4():
 
 ###########################################
 if __name__ == '__main__':
-    test4()
+    test5()
