@@ -3,7 +3,6 @@ from qam import Qam
 from matplotlib import pyplot as plt
 
 if __name__ == '__main__':
-
     if len(sys.argv) != 2:
         print(f"Usage: {sys.argv[0]} <data-bits>")
         exit(1)
